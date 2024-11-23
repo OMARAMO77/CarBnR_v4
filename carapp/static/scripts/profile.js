@@ -299,6 +299,7 @@ async function removeBooking(bookingId) {
         const bookingCard = document.querySelector(`#bookingCard-${bookingId}`);
         if (bookingCard) bookingCard.remove();
         alert("Booking removed successfully");
+        await fetchUserDetails(userId);
     } catch (error) {
         console.error("Error removing booking:", error);
     }
@@ -318,18 +319,6 @@ async function modifyBooking(bookingId) {
         const today = new Date();
         const pickupDate = new Date(pickup_date);
         const daysBetween = calculateDaysBetween(pickupDate, today);
-
-        // Check if modification is allowed
-        if (daysBetween < 2) {
-            document.getElementById("modificationWarning").classList.remove("d-none");
-            return;
-        } else {
-            document.getElementById("modificationWarning").classList.add("d-none");
-        }
-
-        // Pre-fill form with existing dates
-        document.getElementById("pickupDate").value = pickup_date.slice(0, 10);
-        document.getElementById("returnDate").value = return_date.slice(0, 10);
 
         // Set minimum for pickupDate to be at least 2 day from today
         const minPickupDate = new Date();
