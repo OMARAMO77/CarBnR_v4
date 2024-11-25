@@ -2,6 +2,7 @@ function updateStatus(message, status) {
     const statusElement = $('#status');
     statusElement.html(message);
     statusElement.attr('class', 'status-' + status);
+    statusElement.show();
 }
 
 function hideStatus() {
