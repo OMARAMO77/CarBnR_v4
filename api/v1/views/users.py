@@ -58,15 +58,22 @@ def post_user():
     """
     Creates a user
     """
-    if not request.get_json():
-        abort(400, description="Not a JSON")
-
     data = request.get_json()
+    if not data:
+        abort(400, description="Not a JSON")
 
     if 'email' not in data:
         abort(400, description="Missing email")
     if 'password' not in data:
         abort(400, description="Missing password")
+
+    email = data['email']
+    users = storage.all(User).values()
+    existing_user = next((user for user in users if user.to_dict().get('email') == email), None)
+
+    if existing_user:
+        return jsonify({"error": "Email already exists"}), 400
+        """abort(400, description="Email already exists")"""
 
     instance = User(**data)
     instance.save()
