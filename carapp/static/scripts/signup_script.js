@@ -1,8 +1,10 @@
 const HOST = 'https://omar.eromo.tech';
+
 $(document).ready(init);
+
 function init() {
-    // Add event listener to the form submission
-    $('#createAccountForm').submit(function (event) {
+    const createAccountForm = document.getElementById('createAccountForm');
+    createAccountForm.addEventListener('submit', function (event) {
         // Prevent the default form submission behavior
         event.preventDefault();
 
@@ -12,14 +14,13 @@ function init() {
 }
 
 async function createAccount() {
-    const email = $('#email').val();
-    const password = $('#password').val();
-    const confirmPassword = $('#confirmPassword').val();
-    const firstName = $('#firstname').val();
-    const lastName = $('#lastname').val();
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    const firstName = document.getElementById('firstName').value;
+    const lastName = document.getElementById('lastName').value;
     const carId = getParameterByName('carId');
 
-    // Basic form validation
     if (!email || !password || !confirmPassword || !firstName || !lastName) {
         updateStatus('Please fill in all fields.', 'error');
         return;
@@ -28,8 +29,12 @@ async function createAccount() {
         updateStatus('Passwords do not match.', 'error');
         return;
     }
+
     const USERS_URL = `${HOST}/api/v1/users/`;
     updateStatus('Account creation in progress...', 'info');
+    const submitBtn = document.getElementById('submitBtn');
+    submitBtn.disabled = true;
+
     try {
         const response = await fetch(USERS_URL, {
             method: 'POST',
@@ -47,8 +52,10 @@ async function createAccount() {
             const errorMessage = errorData.error || 'Error creating account. Please try again.';
             updateStatus(errorMessage, 'error');
             setTimeout(hideStatus, 3000);
+            console.error('Error:', errorMessage);
             return;
         }
+
         updateStatus('Account created successfully! Redirecting to login page...', 'success');
         setTimeout(() => {
             hideStatus();
@@ -56,9 +63,10 @@ async function createAccount() {
             window.location.href = redirectUrl;
         }, 3000);
     } catch (error) {
-        // Handle network or unexpected errors
         updateStatus('An unexpected error occurred. Please try again.', 'error');
         console.error('Error creating account:', error);
         setTimeout(hideStatus, 3000);
+    } finally {
+        submitBtn.disabled = false; 
     }
 }
