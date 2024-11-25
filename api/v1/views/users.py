@@ -72,8 +72,7 @@ def post_user():
     existing_user = next((user for user in users if user.to_dict().get('email') == email), None)
 
     if existing_user:
-        return jsonify({"error": "Email already exists"}), 400
-        """abort(400, description="Email already exists")"""
+        return jsonify({"error": "Email already exists. Please use a different email."}), 401
 
     instance = User(**data)
     instance.save()
