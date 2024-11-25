@@ -22,11 +22,11 @@ async function createAccount() {
     const carId = getParameterByName('carId');
 
     if (!email || !password || !confirmPassword || !firstName || !lastName) {
-        updateStatus('Please fill in all fields.', 'error');
+        updateStatus('Please fill in all fields.', 'danger');
         return;
     }
     if (password !== confirmPassword) {
-        updateStatus('Passwords do not match.', 'error');
+        updateStatus('Passwords do not match.', 'danger');
         return;
     }
 
@@ -50,7 +50,7 @@ async function createAccount() {
         if (!response.ok) {
             const errorData = await response.json();
             const errorMessage = errorData.error || 'Error creating account. Please try again.';
-            updateStatus(errorMessage, 'error');
+            updateStatus(errorMessage, 'danger');
             setTimeout(hideStatus, 3000);
             console.error('Error:', errorMessage);
             return;
@@ -63,10 +63,10 @@ async function createAccount() {
             window.location.href = redirectUrl;
         }, 3000);
     } catch (error) {
-        updateStatus('An unexpected error occurred. Please try again.', 'error');
+        updateStatus('An unexpected error occurred. Please try again.', 'danger');
         console.error('Error creating account:', error);
         setTimeout(hideStatus, 3000);
     } finally {
-        submitBtn.disabled = false; 
+        submitBtn.disabled = false;
     }
 }
