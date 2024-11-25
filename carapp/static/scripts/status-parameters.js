@@ -1,22 +1,13 @@
-//function updateStatus(message, status) {
-//    const statusElement = $('#status');
- //   statusElement.html(message);
-//    statusElement.attr('class', 'status-' + status);
- //   statusElement.show();
-//}
 function updateStatus(message, type) {
     const statusElement = document.getElementById('status');
-    // Reset previous classes and apply new alert type
     statusElement.className = `alert alert-${type}`; // Bootstrap styling
     statusElement.textContent = message; // Set the message text
     statusElement.style.display = 'block'; // Ensure it is visible
 }
 
 function hideStatus() {
-    //const statusElement = $('#status');
     const statusElement = document.getElementById('status');
     statusElement.style.display = 'none';
-    //statusElement.hide();
 }
 
 function getParameterByName(name) {
@@ -77,3 +68,4 @@ async function getImageUrl(transformedUrl) {
 
   return fallbackImageUrl;
 }
+
