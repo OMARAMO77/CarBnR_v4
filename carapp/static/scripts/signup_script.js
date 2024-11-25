@@ -1,6 +1,5 @@
-$(document).ready(init);
 const HOST = 'https://omar.eromo.tech';
-
+$(document).ready(init);
 function init() {
     // Add event listener to the form submission
     $('#createAccountForm').submit(function (event) {
@@ -12,7 +11,7 @@ function init() {
     });
 }
 
-function createAccount() {
+async function createAccount() {
     const email = $('#email').val();
     const password = $('#password').val();
     const confirmPassword = $('#confirmPassword').val();
@@ -23,48 +22,43 @@ function createAccount() {
     // Basic form validation
     if (!email || !password || !confirmPassword || !firstName || !lastName) {
         updateStatus('Please fill in all fields.', 'error');
-        return false; // Prevent form submission
+        return;
     }
-
     if (password !== confirmPassword) {
         updateStatus('Passwords do not match.', 'error');
-        return false; // Prevent form submission
+        return;
     }
-
     const USERS_URL = `${HOST}/api/v1/users/`;
-    $.ajax({
-        url: USERS_URL,
-        type: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        data: JSON.stringify({
-            first_name: firstName,
-            last_name: lastName,
-            email: email,
-            password: password,
-        }),
-        success: function (response) {
-            // Handle success
-            updateStatus('Account created successfully! Redirecting to login page...', 'success');
+    updateStatus('Account creation in progress...', 'info');
+    try {
+        const response = await fetch(USERS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                first_name: firstName,
+                last_name: lastName,
+                email: email,
+                password: password,
+            }),
+        });
 
-            // Hide status message and redirect after 3 seconds
-            setTimeout(function () {
-              hideStatus();
-              if (carId) {
-                window.location.href = `/login.html?carId=${carId}`;
-              } else {
-                window.location.href = `/login.html`;;
-              }
-            }, 3000);
-        },
-        error: function (error) {
-            // Handle error
-            updateStatus('Error creating account. Please try again.', 'error');
-
-            // Hide status message after 3 seconds
+        if (!response.ok) {
+            const errorData = await response.json();
+            const errorMessage = errorData.error || 'Error creating account. Please try again.';
+            updateStatus(errorMessage, 'error');
             setTimeout(hideStatus, 3000);
+            return;
         }
-    });
-
-    updateStatus('Account creation in progress...', 'info'); // Inform the user that the account creation is in progress
-    return false; // Prevent form submission while the AJAX request is being processed
+        updateStatus('Account created successfully! Redirecting to login page...', 'success');
+        setTimeout(() => {
+            hideStatus();
+            const redirectUrl = carId ? `/login.html?carId=${carId}` : `/login.html`;
+            window.location.href = redirectUrl;
+        }, 3000);
+    } catch (error) {
+        // Handle network or unexpected errors
+        updateStatus('An unexpected error occurred. Please try again.', 'error');
+        console.error('Error creating account:', error);
+        setTimeout(hideStatus, 3000);
+    }
 }
