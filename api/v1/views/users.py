@@ -6,11 +6,20 @@ from api.v1.views import app_views
 from flask import abort, jsonify, make_response, request, Flask
 from flasgger.utils import swag_from
 from hashlib import md5
+import requests
+
+
+"""
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-import requests
-app = Flask(__name__)
 
+app = Flask(__name__)
+limiter = Limiter(get_remote_address, app=app, default_limits=["200 per day", "50 per hour"])
+@app_views.route('/limit-5', methods=['GET'])
+@limiter.limit("5 per minute")  # Specific rate limit
+def my_api():
+    return jsonify({'message': 'Welcome!'})
+"""
 
 @app_views.route('/weather/<latitude>/<longitude>', methods=['GET'], strict_slashes=False)
 def weather(latitude, longitude):
@@ -44,13 +53,6 @@ def weather(latitude, longitude):
         return jsonify({"error": "Invalid latitude or longitude format. Please use numeric values."}), 400
     except requests.RequestException as e:
         return jsonify({"error": "An error occurred while making a request to the Weather API.", "details": str(e)}), 500
-
-
-limiter = Limiter(get_remote_address, app=app, default_limits=["200 per day", "50 per hour"])
-@app_views.route('/limit-5', methods=['GET'])
-@limiter.limit("5 per minute")  # Specific rate limit
-def my_api():
-    return jsonify({'message': 'Welcome!'})
 
 
 @app_views.route('/users', methods=['GET'], strict_slashes=False)
