@@ -55,6 +55,18 @@ def weather(latitude, longitude):
         return jsonify({"error": "An error occurred while making a request to the Weather API.", "details": str(e)}), 500
 
 
+@app_views.route('/is-valid/<user_id>', methods=['GET'], strict_slashes=False)
+def is_valid(user_id):
+    """
+    Check if a user is valid by their user ID.
+    """
+    user = storage.get(User, user_id)
+    if not user:
+        return jsonify({'isValid': 'no'}), 404
+
+    return jsonify({'isValid': 'yes'}), 200
+
+
 @app_views.route('/users', methods=['GET'], strict_slashes=False)
 @swag_from('documentation/user/all_users.yml')
 def get_users():
