@@ -39,7 +39,7 @@ document.getElementById('location-form').addEventListener('submit', async functi
                 <p><strong>Max Wind Speed:</strong> ${dailyData.windspeed_10m_max[index]} km/h</p>
                 <p><strong>Sunrise:</strong> ${dailyData.sunrise[index].slice(11)}</p>
                 <p><strong>Sunset:</strong> ${dailyData.sunset[index].slice(11)}</p>
-                <button class="btn btn-link text-primary view-hourly" data-date="${date}">View Hourly Forecast</button>
+                <button class="btn btn-primary view-hourly" data-date="${date}">View Hourly Forecast</button>
             `;
 
             card.querySelector('.view-hourly').addEventListener('click', function () {
@@ -57,6 +57,8 @@ document.getElementById('location-form').addEventListener('submit', async functi
 
 function showHourlyForecast(date, hourlyData) {
     const hourlyContent = document.getElementById('hourly-content');
+    const hourlyModalLabel = document.getElementById('hourlyModalLabel');
+    hourlyModalLabel.innerHTML = `<span>Hourly Forecast for ${date}</span> `;
     hourlyContent.innerHTML = '';
 
     hourlyData.time.forEach((hour, index) => {
@@ -78,38 +80,4 @@ function showHourlyForecast(date, hourlyData) {
 
     const modal = new bootstrap.Modal(document.getElementById('hourlyModal'));
     modal.show();
-}
-
-async function fetchCoordinates() {
-    const place = document.getElementById('place').value.trim();
-
-    if (!place) {
-        alert('Please enter a valid location.');
-        return;
-    }
-
-    // Build the Nominatim API URL
-    const geoApiUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(place)}&format=json`;
-
-    try {
-        const geoResponse = await fetch(geoApiUrl);
-        if (!geoResponse.ok) throw new Error('Failed to fetch coordinates');
-
-        const coordinates = await geoResponse.json();
-        if (coordinates.length === 0) {
-            alert('No results found for the entered location.');
-            return;
-        }
-
-        // Extract latitude and longitude
-        const location = coordinates[0];
-        const latitude = location.lat;
-        const longitude = location.lon;
-
-
-        return { latitude, longitude }; // Returning as an object
-    } catch (error) {
-        console.error('Error:', error);
-        alert('An error occurred while fetching coordinates. Please try again.');
-    }
 }
