@@ -57,8 +57,6 @@ def decrypt_message(ciphertext, key, iv):
     try:
         decoded_ciphertext = base64.b64decode(ciphertext)
         decoded_iv = base64.b64decode(iv)
-        print(f"Decoded Ciphertext: {decoded_ciphertext}")
-        print(f"Decoded IV: {decoded_iv}")
     except Exception as e:
         print(f"Base64 decoding failed: {str(e)}")
         raise ValueError("Invalid Base64 encoding")
@@ -67,17 +65,15 @@ def decrypt_message(ciphertext, key, iv):
         cipher = Cipher(algorithms.AES(key), modes.CFB(decoded_iv), backend=default_backend())
         decryptor = cipher.decryptor()
         plaintext = decryptor.update(decoded_ciphertext) + decryptor.finalize()
-        print(f"plaintext: {plaintext}")
     except Exception as e:
         print(f"Decryption failed: {str(e)}")
         raise ValueError(f"Decryption failed: {str(e)}")
 
-    # Return the plaintext as-is (binary-safe)
     try:
-        return plaintext.decode('utf-8')  # Attempt UTF-8 decoding for text
+        return plaintext.decode('utf-8')
     except UnicodeDecodeError:
         print("Plaintext is binary data, returning as base64.")
-        return base64.b64encode(plaintext).decode('utf-8')  # Return binary data as Base64
+        return base64.b64encode(plaintext).decode('utf-8')
 
 # API routes
 @app_views.route('/generate-keys/<username>', methods=['GET'])
