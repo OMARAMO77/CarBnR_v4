@@ -15,3 +15,4 @@ from api.v1.views.users import *
 from api.v1.views.bookings import *
 from api.v1.views.upload_images import *
 from api.v1.views.weather import *
+from api.v1.views.crypto import *
