@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Messaging</title>
+    <script>
+        const HOST = 'http://omar.eromo.tech'; // Replace with your backend server URL
+        let ciphertext, iv, encryptedKey;
+
+        async function generateKeys(username) {
+            try {
+                const response = await fetch(`${HOST}/api/v1/generate-keys/${username}`);
+                const data = await response.json();
+                console.log('Public Key:', data.public_key);
+            } catch (error) {
+                console.error('Error generating keys:', error.message);
+            }
+        }
+
+        async function exchangeKey(username, recipient) {
+            try {
+                const response = await fetch(`${HOST}/api/v1/exchange-key`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, recipient })
+                });
+                const data = await response.json();
+                encryptedKey = data.encrypted_key;
+                console.log('Encrypted Key:', encryptedKey);
+            } catch (error) {
+                console.error('Error exchanging key:', error.message);
+            }
+        }
+
+        async function sendMessage(username, recipient, message) {
+            try {
+                // Call the API to encrypt the message and get the ciphertext and IV
+                const response = await fetch(`${HOST}/api/v1/send-message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, recipient, message })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to send the message');
+                }
+
+                const data = await response.json();
+                const { ciphertext, iv } = data;
+
+                console.log('Message Encrypted:', ciphertext, iv);
+
+                // Call the exchange-key API if needed and use the encrypted key
+                const exchangeResponse = await fetch(`${HOST}/api/v1/exchange-key`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, recipient })
+                });
+
+                if (!exchangeResponse.ok) {
+                    const errorData = await exchangeResponse.json();
+                    throw new Error(errorData.error || 'Failed to exchange the key');
+                }
+
+                const exchangeData = await exchangeResponse.json();
+                const { encrypted_key } = exchangeData;
+
+                console.log('Encrypted Key:', encrypted_key);
+
+                // Store the encrypted message on the server
+                await sendMessageToServer(recipient, ciphertext, iv, encrypted_key);
+
+                console.log('Message sent successfully and stored on the server.');
+                alert('Message sent successfully!');
+            } catch (error) {
+                console.error('Error sending message:', error.message);
+                alert('Failed to send message: ' + error.message);
+            }
+        }
+
+        async function receiveMessage(username, ciphertext, iv, encryptedKey) {
+            try {
+                const response = await fetch(`${HOST}/api/v1/receive-message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, ciphertext, iv, encrypted_key: encryptedKey })
+                });
+                const data = await response.json();
+                if (data.plaintext) {
+                    console.log('Decrypted Message:', data.plaintext);
+                    alert('Message from ' + username + ': ' + data.plaintext);
+                } else {
+                    console.error('Decryption failed:', data.error);
+                }
+            } catch (error) {
+                console.error('Error receiving message:', error.message);
+            }
+        }
+
+        async function sendMessageToServer(username, ciphertext, iv, encryptedKey) {
+            try {
+                const response = await fetch(`${HOST}/api/v1/store-message`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username,
+                        ciphertext,
+                        iv,
+                        encrypted_key: encryptedKey
+                    })
+                });
+
+                if (!response.ok) throw new Error('Failed to store message');
+                alert('Message stored successfully!');
+            } catch (error) {
+                console.error('Error storing message:', error.message);
+            }
+        }
+
+        async function fetchMessageData(username) {
+            try {
+                const response = await fetch(`${HOST}/api/v1/get-message-data?username=${username}`);
+                if (!response.ok) throw new Error('Failed to fetch message data');
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching message data:', error.message);
+            }
+        }
+
+        window.onload = () => {
+            document.getElementById('receiveMessageButton').addEventListener('click', async () => {
+                const username = 'Bob';
+                const messageData = await fetchMessageData(username);
+
+                if (messageData && messageData.ciphertext && messageData.iv && messageData.encrypted_key) {
+                    receiveMessage(username, messageData.ciphertext, messageData.iv, messageData.encrypted_key);
+                } else {
+                    alert('No message data found for Bob.');
+                }
+            });
+        };
+    </script>
+</head>
+<body>
+    <h1>Secure Messaging</h1>
+    <button onclick="generateKeys('Alice')">Generate Keys for Alice</button>
+    <button onclick="generateKeys('Bob')">Generate Keys for Bob</button>
+    <button onclick="exchangeKey('Alice', 'Bob')">Exchange Key (Alice to Bob)</button>
+    <button onclick="sendMessage('Alice', 'Bob', 'Hello, Bob!')">Send Message (Alice to Bob)</button>
+    <button id="receiveMessageButton">Receive Message (Bob)</button>
+</body>
+</html>
