@@ -8,19 +8,37 @@ from flask import abort, jsonify, make_response, request
 from flasgger.utils import swag_from
 
 
-@app_views.route('/<user_id>/messages', methods=['GET'],
+@app_views.route('/<recipient_id>/messages_received', methods=['GET'],
                  strict_slashes=False)
 @swag_from('documentation/message/messages_by_user.yml', methods=['GET'])
-def get_messages(user_id):
+def get_messages_received(recipient_id):
     """
-    Retrieves the list of all messages objects
+    Retrieves the list of all received message objects
     of a specific User, or a specific message
     """
     list_messages = []
-    user = storage.get(User, user_id)
+    user = storage.get(User, recipient_id)
     if not user:
         abort(404)
-    for message in user.messages:
+    for message in user.messages_received:
+        list_messages.append(message.to_dict())
+
+    return jsonify(list_messages)
+
+
+@app_views.route('/<sender_id>/messages_sent', methods=['GET'],
+                 strict_slashes=False)
+@swag_from('documentation/message/messages_by_user.yml', methods=['GET'])
+def get_messages_sent(sender_id):
+    """
+    Retrieves the list of all sent message objects
+    of a specific User, or a specific message
+    """
+    list_messages = []
+    user = storage.get(User, sender_id)
+    if not user:
+        abort(404)
+    for message in user.messages_sent:
         list_messages.append(message.to_dict())
 
     return jsonify(list_messages)
@@ -54,33 +72,42 @@ def delete_message(message_id):
     return make_response(jsonify({}), 200)
 
 
-@app_views.route('/<user_id>/messages', methods=['POST'],
-                 strict_slashes=False)
+@app_views.route('/messages', methods=['POST'], strict_slashes=False)
 @swag_from('documentation/message/post_message.yml', methods=['POST'])
-def post_message(user_id):
+def post_message():
     """
     Creates a Message
     """
-    user = storage.get(User, user_id)
-    if not user:
-        abort(404)
-    if not request.get_json():
+    # Check if the request body is JSON
+    if not request.is_json:
         abort(400, description="Not a JSON")
-    if 'sender_id' not in request.get_json():
-        abort(400, description="Missing sender_id")
-    if 'recipient_id' not in request.get_json():
-        abort(400, description="Missing recipient_id")
-    if 'ciphertext' not in request.get_json():
-        abort(400, description="Missing ciphertext")
-    if 'iv' not in request.get_json():
-        abort(400, description="Missing iv")
-    if 'encrypted_key' not in request.get_json():
-        abort(400, description="Missing encrypted_key")
 
     data = request.get_json()
-    instance = Message(**data)
-    instance.user_id = user.id
-    instance.save()
+
+    # Validate required fields
+    required_fields = ['sender_id', 'recipient_id', 'ciphertext', 'iv', 'encrypted_key']
+    missing_fields = [field for field in required_fields if field not in data]
+
+    if missing_fields:
+        abort(400, description=f"Missing fields: {', '.join(missing_fields)}")
+
+    # Verify sender exists
+    sender = storage.get(User, data['sender_id'])
+    if not sender:
+        abort(404, description="Sender not found")
+
+    # Verify recipient exists
+    recipient = storage.get(User, data['recipient_id'])
+    if not recipient:
+        abort(404, description="Recipient not found")
+
+    # Create and save the message instance
+    try:
+        instance = Message(**data)
+        instance.save()
+    except Exception as e:
+        abort(500, description=f"Failed to save message: {str(e)}")
+
     return make_response(jsonify(instance.to_dict()), 201)
 
 
@@ -97,7 +124,8 @@ def put_message(message_id):
     if not request.get_json():
         abort(400, description="Not a JSON")
 
-    ignore = ['id', 'user_id', 'created_at', 'updated_at']
+    ignore = ['id', 'sender_id', 'recipient_id',
+              'created_at', 'updated_at']
 
     data = request.get_json()
     for key, value in data.items():
