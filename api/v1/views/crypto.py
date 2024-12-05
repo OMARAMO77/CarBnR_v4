@@ -92,27 +92,27 @@ def generate_keys(username):
 @app_views.route('/exchange-key', methods=['POST'])
 def exchange_key():
     data = request.json
-    username = data['username']
+    sender = data['sender']
     recipient = data['recipient']
-    if username not in user_keys or recipient not in user_keys:
+    if sender not in user_keys or recipient not in user_keys:
         return jsonify({'error': 'User or recipient not found'}), 400
 
     shared_key = os.urandom(32)  # Random symmetric key
     recipient_public_key = user_keys[recipient]['public_key']
     encrypted_key = encrypt_symmetric_key(shared_key, recipient_public_key)
-    user_keys[username]['shared_key'] = shared_key
+    user_keys[sender]['shared_key'] = shared_key
     return jsonify({'encrypted_key': encrypted_key}), 200
 
 @app_views.route('/send-message', methods=['POST'])
 def send_message():
     data = request.json
-    username = data['username']
+    sender = data['sender']
     recipient = data['recipient']
     message = data['message']
-    if username not in user_keys or recipient not in user_keys:
+    if sender not in user_keys or recipient not in user_keys:
         return jsonify({'error': 'User or recipient not found'}), 400
 
-    shared_key = user_keys[username].get('shared_key')
+    shared_key = user_keys[sender].get('shared_key')
     if not shared_key:
         return jsonify({'error': 'Key exchange not performed'}), 400
 
@@ -122,16 +122,18 @@ def send_message():
 @app_views.route('/store-message', methods=['POST'])
 def store_message():
     data = request.json
-    username = data.get('username')  # Recipient's username
+    sender = data.get('sender')
+    recipient = data.get('recipient')
     ciphertext = data.get('ciphertext')
     iv = data.get('iv')
     encrypted_key = data.get('encrypted_key')
 
-    if not (username and ciphertext and iv and encrypted_key):
+    if not (sender and recipient and ciphertext and iv and encrypted_key):
         return jsonify({'error': 'All fields are required'}), 400
 
     # Store the encrypted data for the recipient
-    MESSAGES[username] = {
+    MESSAGES[recipient] = {
+        "sender": sender,
         "ciphertext": ciphertext,
         "iv": iv,
         "encrypted_key": encrypted_key
@@ -140,11 +142,11 @@ def store_message():
 
 @app_views.route('/get-message-data', methods=['GET'])
 def get_message_data():
-    username = request.args.get('username')
-    if not username:
-        return jsonify({'error': 'Username is required'}), 400
+    recipient = request.args.get('recipient')
+    if not recipient:
+        return jsonify({'error': 'recipient is required'}), 400
 
-    message_data = MESSAGES.get(username)
+    message_data = MESSAGES.get(recipient)
     if not message_data:
         return jsonify({'error': 'No message data found for user'}), 404
 
@@ -153,17 +155,17 @@ def get_message_data():
 @app_views.route('/receive-message', methods=['POST'])
 def receive_message():
     data = request.json
-    username = data['username']
+    recipient = data['recipient']
     ciphertext = data['ciphertext']
     iv = data['iv']
     encrypted_key = data['encrypted_key']
-    if not all([username, ciphertext, iv, encrypted_key]):
+    if not all([recipient, ciphertext, iv, encrypted_key]):
         return jsonify({'error': 'Missing required fields'}), 400
 
-    if username not in user_keys:
+    if recipient not in user_keys:
         return jsonify({'error': 'User not found'}), 400
 
-    private_key = user_keys[username]['private_key']
+    private_key = user_keys[recipient]['private_key']
 
     try:
         shared_key = decrypt_symmetric_key(encrypted_key, private_key)
