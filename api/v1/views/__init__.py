@@ -16,3 +16,5 @@ from api.v1.views.bookings import *
 from api.v1.views.upload_images import *
 from api.v1.views.weather import *
 from api.v1.views.crypto import *
+from api.v1.views.messages import *
+from api.v1.views.user_keyss import *
