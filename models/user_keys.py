@@ -13,7 +13,8 @@ class User_keys(BaseModel, Base):
         user_id = Column(String(60), ForeignKey('users.id'), nullable=False, unique=True)
         private_key = Column(String(4096), nullable=False)
         public_key = Column(String(4096), nullable=False)
-        shared_key = Column(BLOB, nullable=True)
+        # shared_key = Column(BLOB, nullable=True)
+        shared_key = Column(String(4096), nullable=True)
     else:
         user_id = ""
         private_key = ""
