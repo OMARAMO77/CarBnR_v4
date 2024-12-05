@@ -12,6 +12,8 @@ from models.review import Review
 from models.state import State
 from models.user import User
 from models.booking import Booking
+from models.message import Message
+from models.user_keys import User_keys
 from os import getenv
 import sqlalchemy
 from sqlalchemy import create_engine
@@ -19,7 +21,7 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 
 classes = {"Car": Car, "City": City, "User": User,
            "Location": Location, "Review": Review, "State": State,
-           "Booking": Booking}
+           "Booking": Booking, "Message": Message, "User_keys": User_keys}
 
 
 class DBStorage:
