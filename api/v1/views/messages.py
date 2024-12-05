@@ -8,7 +8,7 @@ from flask import abort, jsonify, make_response, request
 from flasgger.utils import swag_from
 
 
-@app_views.route('/users/<user_id>/messages', methods=['GET'],
+@app_views.route('/<user_id>/messages', methods=['GET'],
                  strict_slashes=False)
 @swag_from('documentation/message/messages_by_user.yml', methods=['GET'])
 def get_messages(user_id):
@@ -54,7 +54,7 @@ def delete_message(message_id):
     return make_response(jsonify({}), 200)
 
 
-@app_views.route('/users/<user_id>/messages', methods=['POST'],
+@app_views.route('/<user_id>/messages', methods=['POST'],
                  strict_slashes=False)
 @swag_from('documentation/message/post_message.yml', methods=['POST'])
 def post_message(user_id):
@@ -66,8 +66,16 @@ def post_message(user_id):
         abort(404)
     if not request.get_json():
         abort(400, description="Not a JSON")
-    if 'name' not in request.get_json():
-        abort(400, description="Missing name")
+    if 'sender_id' not in request.get_json():
+        abort(400, description="Missing sender_id")
+    if 'recipient_id' not in request.get_json():
+        abort(400, description="Missing recipient_id")
+    if 'ciphertext' not in request.get_json():
+        abort(400, description="Missing ciphertext")
+    if 'iv' not in request.get_json():
+        abort(400, description="Missing iv")
+    if 'encrypted_key' not in request.get_json():
+        abort(400, description="Missing encrypted_key")
 
     data = request.get_json()
     instance = Message(**data)
