@@ -4,10 +4,11 @@
 import models
 from models.base_model import BaseModel, Base
 from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy.orm import relationship
 
 
 class Message(BaseModel, Base):
-    """Representation of encrypted messages between users."""
+    """Representation of a message"""
     if models.storage_t == 'db':
         __tablename__ = 'messages'
         sender_id = Column(String(60), ForeignKey('users.id'), nullable=False)
@@ -15,6 +16,20 @@ class Message(BaseModel, Base):
         ciphertext = Column(String(4096), nullable=False)
         iv = Column(String(128), nullable=False)
         encrypted_key = Column(String(4096), nullable=False)
+
+        # Linking relationships
+        user_sender = relationship(
+            "User",
+            foreign_keys=[sender_id],
+            back_populates="messages_sent",
+            overlaps="messages_sent,user_sender",
+        )
+        user_recipient = relationship(
+            "User",
+            foreign_keys=[recipient_id],
+            back_populates="messages_received",
+            overlaps="messages_received,user_recipient",
+        )
     else:
         sender_id = ""
         recipient_id = ""
