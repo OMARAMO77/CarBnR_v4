@@ -13,11 +13,13 @@ from models.review import Review
 from models.state import State
 from models.user import User
 from models.booking import Booking
+from models.message import Message
+from models.user_keys import User_keys
 from hashlib import md5
 
-classes = {"Car": Car, "BaseModel": BaseModel, "City": City, "User": User,
+classes = {"Car": Car, "City": City, "User": User,
            "Location": Location, "Review": Review, "State": State,
-           "Booking": Booking}
+           "Booking": Booking, "Message": Message, "User_keys": User_keys}
 
 
 class FileStorage:
