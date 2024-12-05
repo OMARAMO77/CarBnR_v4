@@ -22,12 +22,24 @@ class User(BaseModel, Base):
         phone_number = Column(String(128), nullable=True)
         reviews = relationship("Review", backref="user")
         bookings = relationship("Booking", backref="user")
-        locations = relationship("Location", backref="user",
-                                 cascade="all, delete, delete-orphan")
-        user_keyss = relationship("User_keys", backref="user",
-                                 cascade="all, delete, delete-orphan")
-        messages = relationship("Message", backref="user",
-                                 cascade="all, delete, delete-orphan")
+        locations = relationship(
+            "Location", backref="user", cascade="all, delete, delete-orphan"
+        )
+        user_keys = relationship(
+            "User_keys", backref="user", cascade="all, delete, delete-orphan"
+        )
+        messages_sent = relationship(
+            "Message",
+            foreign_keys="Message.sender_id",
+            back_populates="user_sender",
+            overlaps="sent_messages,user_sender",
+        )
+        messages_received = relationship(
+            "Message",
+            foreign_keys="Message.recipient_id",
+            back_populates="user_recipient",
+            overlaps="received_messages,user_recipient",
+        )
     else:
         email = ""
         password = ""
