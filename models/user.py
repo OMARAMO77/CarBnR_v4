@@ -24,6 +24,10 @@ class User(BaseModel, Base):
         bookings = relationship("Booking", backref="user")
         locations = relationship("Location", backref="user",
                                  cascade="all, delete, delete-orphan")
+        user_keyss = relationship("User_keys", backref="user",
+                                 cascade="all, delete, delete-orphan")
+        messages = relationship("Message", backref="user",
+                                 cascade="all, delete, delete-orphan")
     else:
         email = ""
         password = ""
