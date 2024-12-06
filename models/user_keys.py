@@ -3,7 +3,7 @@
 
 import models
 from models.base_model import BaseModel, Base
-from sqlalchemy import Column, String, ForeignKey, BLOB
+from sqlalchemy import Column, String, ForeignKey, BLOB, Text, LargeBinary
 
 
 class User_keys(BaseModel, Base):
@@ -11,10 +11,13 @@ class User_keys(BaseModel, Base):
     if models.storage_t == 'db':
         __tablename__ = 'user_keyss'
         user_id = Column(String(60), ForeignKey('users.id'), nullable=False, unique=True)
-        private_key = Column(String(4096), nullable=False)
-        public_key = Column(String(4096), nullable=False)
+        # private_key = Column(Text, nullable=False)
+        # public_key = Column(Text, nullable=False)
+        #shared_key = Column(String(4096), nullable=True)
         # shared_key = Column(BLOB, nullable=True)
-        shared_key = Column(String(4096), nullable=True)
+        private_key = Column(LargeBinary, nullable=False)  # Binary storage for the private key in PEM format
+        public_key = Column(LargeBinary, nullable=False)   # Binary storage for the public key in PEM format
+        shared_key = Column(LargeBinary, nullable=True)    # Optional binary storage for the shared symmetric key
     else:
         user_id = ""
         private_key = ""
