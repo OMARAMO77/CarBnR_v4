@@ -255,16 +255,21 @@ def get_message_data():
         return jsonify({'error': 'Recipient is required'}), 400
     try:
         user = validate_user(recipient, "Recipient")
-        messages = user.messages_received or []
+        
+        # Fetch both received and sent messages
+        received_messages = user.messages_received or []
+        sent_messages = user.messages_sent or []
 
-        if not messages:
+        # Combine both lists and sort them chronologically
+        all_messages = received_messages + sent_messages
+        if not all_messages:
             return jsonify({"messages": '', 'error': 'No message data found for recipient'}), 404
-
-        message_list = [message.to_dict() for message in messages]
+        
+        # Convert to dict format
+        message_list = [message.to_dict() for message in all_messages]
         return jsonify({"messages": message_list}), 200
     except Exception as e:
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
-
 @app_views.route('/receive-message', methods=['POST'])
 def receive_message():
     data = request.json
