@@ -13,12 +13,12 @@ class Message(BaseModel, Base):
         __tablename__ = 'messages'
         sender_id = Column(String(60), ForeignKey('users.id'), nullable=False)
         recipient_id = Column(String(60), ForeignKey('users.id'), nullable=False)
-        # ciphertext = Column(Text, nullable=False)
-        # iv = Column(String(128), nullable=False)
-        # encrypted_key = Column(Text, nullable=False)
-        ciphertext = Column(LargeBinary, nullable=False)  # Encrypted message content
-        iv = Column(LargeBinary(16), nullable=False)  # Initialization vector (16 bytes)
-        encrypted_key = Column(LargeBinary, nullable=False)  # RSA-encrypted symmetric key
+        ciphertext = Column(Text, nullable=False)
+        iv = Column(String(128), nullable=False)
+        encrypted_key = Column(Text, nullable=False)
+        # ciphertext = Column(LargeBinary, nullable=False)  # Encrypted message content
+        # iv = Column(LargeBinary, nullable=False)  # Initialization vector (16 bytes)
+        # encrypted_key = Column(LargeBinary, nullable=False)  # RSA-encrypted symmetric key
         # Linking relationships
         user_sender = relationship(
             "User",
