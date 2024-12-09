@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 from api.v1.views import app_views
 from models.user_keys import User_keys
+from models.message import Message
 from models.user import User
 from models import storage
 from flask import abort, jsonify, make_response, request
@@ -13,21 +14,18 @@ import base64
 
 
 # Utility functions
+def validate_user(user_id, role="User"):
+    user = storage.get(User, user_id)
+    if not user:
+        abort(404, description=f"{role} not found")
+    return user
+
 def get_existing_user_keys(user_id):
     """
     Helper function to retrieve existing user_keys for a user.
     """
     user_keys = next((uk for uk in storage.all(User_keys).values() if uk.user_id == user_id), None)
     return user_keys
-
-def validate_user(user_id, role="User"):
-    """
-    Helper function to validate user existence.
-    """
-    user = storage.get(User, user_id)
-    if not user:
-        abort(404, description=f"{role} not found")
-    return user
 
 def generate_rsa_key_pair():
     private_key = rsa.generate_private_key(
@@ -47,11 +45,11 @@ def encrypt_symmetric_key(shared_key, public_key):
             label=None
         )
     )
-    # return base64.b64encode(encrypted_key).decode()
-    return encrypted_key
+    return base64.b64encode(encrypted_key).decode()
+    # return encrypted_key
 
 def decrypt_symmetric_key(encrypted_key, private_key):
-    # encrypted_key = base64.b64decode(encrypted_key)
+    encrypted_key = base64.b64decode(encrypted_key)
     shared_key = private_key.decrypt(
         encrypted_key,
         padding.OAEP(
@@ -67,28 +65,47 @@ def encrypt_message(message, shared_key):
     cipher = Cipher(algorithms.AES(shared_key), modes.CFB(iv), backend=default_backend())
     encryptor = cipher.encryptor()
     ciphertext = encryptor.update(message.encode()) + encryptor.finalize()
-    # return base64.b64encode(ciphertext).decode(), base64.b64encode(iv).decode()
-    return ciphertext, iv
+    return base64.b64encode(ciphertext).decode(), base64.b64encode(iv).decode()
+    # return ciphertext, iv
 
 def decrypt_message(ciphertext, shared_key, iv):
-    """Decrypt a message using AES."""
-    # ciphertext = base64.b64decode(ciphertext)
-    # iv = base64.b64decode(iv)
-    cipher = Cipher(algorithms.AES(shared_key), modes.CFB(iv), backend=default_backend())
-    decryptor = cipher.decryptor()
-    plaintext = decryptor.update(ciphertext) + decryptor.finalize()
-    # return plaintext.decode('utf-8')
-    return plaintext
+    try:
+        decoded_ciphertext = base64.b64decode(ciphertext)
+        decoded_iv = base64.b64decode(iv)
+    except Exception as e:
+        print(f"Base64 decoding failed: {str(e)}")
+        raise ValueError("Invalid Base64 encoding")
+
+    try:
+        cipher = Cipher(algorithms.AES(shared_key), modes.CFB(decoded_iv), backend=default_backend())
+        decryptor = cipher.decryptor()
+        plaintext = decryptor.update(decoded_ciphertext) + decryptor.finalize()
+    except Exception as e:
+        print(f"Decryption failed: {str(e)}")
+        raise ValueError(f"Decryption failed: {str(e)}")
+
+    try:
+        return plaintext.decode('utf-8')
+    except UnicodeDecodeError:
+        print("Plaintext is binary data, returning as base64.")
+        return base64.b64encode(plaintext).decode('utf-8')
 
 # API routes
 @app_views.route('/generate-keys/<user_id>', methods=['GET'])
 def generate_keys(user_id):
+    """
+    Generate RSA key pair for a user if they don't already have one.
+    """
+    # Check if user exists in the database
     user = storage.get(User, user_id)
     if not user:
         abort(404, description="User not found")
 
-    if get_existing_user_keys(user.id):
-        abort(400, description="User already has keys")
+    # Check if the user already has keys
+    existing_keys = get_existing_user_keys(user.id)
+    if existing_keys:
+        return jsonify({'error': 'User already has keys', 
+                        'public_key': existing_keys.public_key.decode()}), 400
 
     # Generate RSA key pair
     private_key, public_key = generate_rsa_key_pair()
@@ -113,64 +130,95 @@ def generate_keys(user_id):
     )
     user_keys_entry.save()
 
-    return jsonify({'public_key': public_key_pem.decode()}), 201
+    return jsonify({'message': 'Keys generated successfully', 
+                    'public_key': public_key_pem.decode()}), 201
 
 @app_views.route('/exchange-key', methods=['POST'])
 def exchange_key():
-    data = request.json
-    sender = data.get('sender')
-    recipient = data.get('recipient')
+    try:
+        data = request.json
+        sender = data.get('sender')
+        recipient = data.get('recipient')
 
-    # Validate the presence of sender and recipient in the database
-    sender_keys = storage.get(User_keys, sender)
-    recipient_keys = storage.get(User_keys, recipient)
+        if not sender or not recipient:
+            return jsonify({'error': 'Sender and recipient are required'}), 400
 
-    if not sender_keys or not recipient_keys:
-        return jsonify({'error': 'Sender or recipient not found'}), 400
+        sender_keys = get_existing_user_keys(sender)
+        recipient_keys = get_existing_user_keys(recipient)
 
-    # Generate a random shared symmetric key
-    shared_key = os.urandom(32)
+        if not sender_keys or not recipient_keys:
+            return jsonify({'error': 'Sender or recipient not found'}), 404
 
-    # Retrieve the recipient's public key and encrypt the shared key
-    recipient_public_key = serialization.load_pem_public_key(
-        recipient_keys.public_key.encode('utf-8'),
-        backend=default_backend()
-    )
-    encrypted_key = encrypt_symmetric_key(shared_key, recipient_public_key)
+        # Generate a random shared symmetric key
+        shared_key = os.urandom(32)
 
-    # Save the shared key in the sender's database record
-    sender_keys.shared_key = shared_key
-    storage.save()  # Save changes to the database
+        # deserialized public key
+        recipient_public_key = serialization.load_pem_public_key(
+            recipient_keys.public_key if isinstance(recipient_keys.public_key, bytes) else recipient_keys.public_key.encode('utf-8'),
+            backend=default_backend()
+        )
+        # Encrypt the shared key using the recipient's public key
+        encrypted_key = encrypt_symmetric_key(shared_key, recipient_public_key)
 
-    # Return the encrypted shared key
-    return jsonify({'encrypted_key': encrypted_key.hex()}), 200
+        # Save the shared key (binary) in the sender's database record
+        sender_keys.shared_key = shared_key  # Store as binary
+        storage.save()  # Save changes to the database
+
+        return jsonify({'encrypted_key': encrypted_key}), 200
+
+    except Exception as e:
+        print(f"Error in /exchange-key: {e}")
+        return jsonify({'error': 'Internal Server Error'}), 500
+
 
 @app_views.route('/send-message', methods=['POST'])
 def send_message():
-    data = request.json
-    sender = data.get('sender')
-    recipient = data.get('recipient')
-    message = data.get('message')
+    try:
+        data = request.json
+        sender = data.get('sender')
+        recipient = data.get('recipient')
+        message = data.get('message')
 
-    # Validate sender and recipient presence in the database
-    sender_keys = storage.get(User_keys, sender)
-    recipient_keys = storage.get(User_keys, recipient)
+        # Validate input
+        if not message:
+            return jsonify({'error': 'Message is required'}), 400
+        if not sender or not recipient:
+            return jsonify({'error': 'Sender and recipient are required'}), 400
 
-    if not sender_keys or not recipient_keys:
-        return jsonify({'error': 'Sender or recipient not found'}), 400
+        # Validate sender and recipient presence in the database
+        sender_keys = get_existing_user_keys(sender)
+        recipient_keys = get_existing_user_keys(recipient)
 
-    # Retrieve the shared key from the sender's database keys
-    if not sender_keys.shared_key:
-        return jsonify({'error': 'Key exchange not performed'}), 400
+        if not sender_keys or not recipient_keys:
+            return jsonify({'error': 'Sender or recipient not found'}), 404
 
-    # Convert the shared key (stored as binary in DB) back to bytes
-    shared_key = sender_keys.shared_key
+        # Retrieve the shared key from the sender's database record
+        shared_key = sender_keys.shared_key
+        if not shared_key:
+            return jsonify({'error': 'Key exchange not performed'}), 400
 
-    # Encrypt the message using the shared key
-    ciphertext, iv = encrypt_message(message, shared_key)
+        # Ensure shared_key is in bytes
+        if isinstance(shared_key, str):
+            shared_key = bytes.fromhex(shared_key)  # If stored as hex string
+        elif not isinstance(shared_key, bytes):
+            return jsonify({'error': 'Invalid shared key format'}), 500
 
-    # Return the encrypted message and initialization vector
-    return jsonify({'ciphertext': ciphertext.hex(), 'iv': iv.hex()}), 200
+        # Encrypt the message using the shared key
+        try:
+            ciphertext, iv = encrypt_message(message, shared_key)
+        except Exception as encryption_error:
+            print(f"Encryption error: {encryption_error}")
+            return jsonify({'error': 'Encryption failed'}), 500
+
+        # Return the encrypted message and initialization vector
+        return jsonify({
+            'ciphertext': ciphertext,
+            'iv': iv
+        }), 200
+
+    except Exception as e:
+        print(f"Error in /send-message: {e}")
+        return jsonify({'error': 'Internal Server Error'}), 500
 
 @app_views.route('/store-message', methods=['POST'])
 def store_message():
@@ -185,7 +233,7 @@ def store_message():
         return jsonify({'error': 'All fields are required'}), 400
 
     try:
-        # Create a new message entry in the database
+        # Create and save the message
         new_message = Message(
             sender_id=sender,
             recipient_id=recipient,
@@ -198,37 +246,22 @@ def store_message():
         return jsonify({'message': 'Message stored successfully'}), 200
 
     except Exception as e:
-        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
 
 @app_views.route('/get-message-data', methods=['GET'])
 def get_message_data():
     recipient = request.args.get('recipient')
     if not recipient:
         return jsonify({'error': 'Recipient is required'}), 400
-
     try:
-        # Query messages for the recipient using the `Message` model
-
         user = validate_user(recipient, "Recipient")
         messages = user.messages_received or []
 
         if not messages:
-            return jsonify({'error': 'No message data found for user'}), 404
+            return jsonify({"messages": '', 'error': 'No message data found for recipient'}), 404
 
-        # Serialize message data
-        message_list = [
-            {
-                "sender": message.sender_id,
-                "ciphertext": message.ciphertext,
-                "iv": message.iv,
-                "encrypted_key": message.encrypted_key,
-                "timestamp": message.created_at.isoformat()
-            }
-            for message in messages
-        ]
-
+        message_list = [message.to_dict() for message in messages]
         return jsonify({"messages": message_list}), 200
-
     except Exception as e:
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
 
@@ -246,23 +279,17 @@ def receive_message():
 
     try:
         # Fetch the recipient's private key from the database
-        user_keys_entry = storage.get(User_keys, recipient)
-        # user_keys_entry = User_keys.query.filter_by(user_id=recipient).first()
-        if not user_keys_entry:
+        recipient_keys = get_existing_user_keys(recipient)
+        if not recipient_keys:
             return jsonify({'error': 'Recipient not found'}), 400
 
-        private_key_pem = user_keys_entry.private_key
-        private_key = serialization.load_pem_private_key(
-            private_key_pem.encode(),
-            password=None
+        recipient_private_key = serialization.load_pem_private_key(
+            recipient_keys.private_key,  # The serialized private key (byte string)
+            password=None,
+            backend=default_backend()
         )
-
-        # Decrypt the shared symmetric key
-        shared_key = decrypt_symmetric_key(encrypted_key, private_key)
-
-        # Decrypt the message
+        shared_key = decrypt_symmetric_key(encrypted_key, recipient_private_key)
         plaintext = decrypt_message(ciphertext, shared_key, iv)
-
         return jsonify({'plaintext': plaintext}), 200
 
     except ValueError as e:
