@@ -7,6 +7,7 @@ from flask import Flask, render_template, make_response, jsonify
 from flask_cors import CORS
 from flasgger import Swagger
 from flasgger.utils import swag_from
+from werkzeug.exceptions import HTTPException
 
 app = Flask(__name__)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
@@ -29,6 +30,19 @@ def not_found(error):
         description: a resource was not found
     """
     return make_response(jsonify({'error': "Not found"}), 404)
+
+
+@app.errorhandler(HTTPException)
+def handle_http_exception(e):
+    response = e.get_response()
+    response.data = jsonify({'error': e.description}).data
+    response.content_type = 'application/json'
+    return response
+
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    return jsonify({'error': 'An unexpected error occurred'}), 500
 
 
 app.config['SWAGGER'] = {
