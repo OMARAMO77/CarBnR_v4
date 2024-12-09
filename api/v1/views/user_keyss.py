@@ -1,5 +1,5 @@
 #!/usr/bin/python3
-""" objects that handles all default RestFul API actions for user_keyss """
+""" Objects that handle all default RESTful API actions for user_keys """
 from models.user_keys import User_keys
 from models.user import User
 from models import storage
@@ -8,15 +8,23 @@ from flask import abort, jsonify, make_response, request
 from flasgger.utils import swag_from
 
 
+def get_existing_user_keys(user_id):
+    """
+    Helper function to retrieve existing user_keys for a user.
+    """
+    user_keys = next((uk for uk in storage.all(User_keys).values() if uk.user_id == user_id), None)
+    return user_keys
+
+
 @app_views.route('/user_keys/<user_id>', methods=['GET'], strict_slashes=False)
 @swag_from('documentation/user_keys/get_user_keys.yml', methods=['GET'])
 def get_user_keys(user_id):
     """
-    Retrieves a specific user_keys based on id
+    Retrieve user_keys for a specific user.
     """
-    user_keys = storage.get(User_keys, user_id)
+    user_keys = get_existing_user_keys(user_id)
     if not user_keys:
-        abort(404)
+        abort(404, description="User keys not found")
     return jsonify(user_keys.to_dict())
 
 
@@ -24,15 +32,14 @@ def get_user_keys(user_id):
 @swag_from('documentation/user_keys/delete_user_keys.yml', methods=['DELETE'])
 def delete_user_keys(user_id):
     """
-    Deletes a user_keys based on id provided
+    Deletes a user_keys based on user ID provided.
     """
-    user_keys = storage.get(User_keys, user_id)
-
+    user_keys = get_existing_user_keys(user_id)
     if not user_keys:
-        abort(404)
+        abort(404, description="User keys not found")
+
     storage.delete(user_keys)
     storage.save()
-
     return make_response(jsonify({}), 200)
 
 
@@ -41,21 +48,25 @@ def delete_user_keys(user_id):
 @swag_from('documentation/user_keys/post_user_keys.yml', methods=['POST'])
 def post_user_keys(user_id):
     """
-    Creates a User_keys
+    Creates a User_keys for a user. Ensures only one object exists per user.
     """
     user = storage.get(User, user_id)
     if not user:
-        abort(404)
+        abort(404, description="User not found")
+
+    if get_existing_user_keys(user_id):
+        abort(400, description="User already has keys")
+
     if not request.get_json():
         abort(400, description="Not a JSON")
-    if 'private_key' not in request.get_json():
-        abort(400, description="Missing private_key")
-    if 'public_key' not in request.get_json():
-        abort(400, description="Missing public_key")
-    if 'shared_key' not in request.get_json():
-        abort(400, description="Missing shared_key")
 
     data = request.get_json()
+    required_fields = ['private_key', 'public_key', 'shared_key']
+    missing_fields = [field for field in required_fields if field not in data]
+
+    if missing_fields:
+        abort(400, description=f"Missing fields: {', '.join(missing_fields)}")
+
     instance = User_keys(**data)
     instance.user_id = user.id
     instance.save()
@@ -66,20 +77,21 @@ def post_user_keys(user_id):
 @swag_from('documentation/user_keys/put_user_keys.yml', methods=['PUT'])
 def put_user_keys(user_id):
     """
-    Updates a User_keys
+    Updates a User_keys object for a user.
     """
-    user_keys = storage.get(User_keys, user_id)
+    user_keys = get_existing_user_keys(user_id)
     if not user_keys:
-        abort(404)
+        abort(404, description="User keys not found")
 
     if not request.get_json():
         abort(400, description="Not a JSON")
 
     ignore = ['id', 'user_id', 'created_at', 'updated_at']
-
     data = request.get_json()
+
     for key, value in data.items():
         if key not in ignore:
             setattr(user_keys, key, value)
+
     storage.save()
     return make_response(jsonify(user_keys.to_dict()), 200)
