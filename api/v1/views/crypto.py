@@ -253,6 +253,7 @@ def get_message_data():
     recipient = request.args.get('recipient')
     if not recipient:
         return jsonify({'error': 'Recipient is required'}), 400
+
     try:
         user = validate_user(recipient, "Recipient")
         
@@ -260,16 +261,22 @@ def get_message_data():
         received_messages = user.messages_received or []
         sent_messages = user.messages_sent or []
 
-        # Combine both lists and sort them chronologically
+        # Combine both lists
         all_messages = received_messages + sent_messages
         if not all_messages:
             return jsonify({"messages": '', 'error': 'No message data found for recipient'}), 404
-        
-        # Convert to dict format
+
+        # Sort messages chronologically by timestamp
+        all_messages.sort(key=lambda msg: msg.created_at)
+
+        # Convert to dict format after sorting
         message_list = [message.to_dict() for message in all_messages]
+
         return jsonify({"messages": message_list}), 200
+
     except Exception as e:
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
 @app_views.route('/receive-message', methods=['POST'])
 def receive_message():
     data = request.json
@@ -301,3 +308,25 @@ def receive_message():
         return jsonify({'error': str(e)}), 400
     except Exception as e:
         return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+
+@app_views.route('/get-contacts', methods=['GET'])
+def get_contacts():
+    user_id = request.args.get('user_id')
+    try:
+
+        # Fetch all contacts for the current user
+        user = validate_user(user_id, "User")
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+
+        # Fetch related contacts (example: users they've messaged or received messages from)
+        sent_contacts = {msg.recipient_id for msg in user.messages_sent}
+        received_contacts = {msg.sender_id for msg in user.messages_received}
+        all_contacts = sent_contacts.union(received_contacts)
+
+        # Convert to a structured response
+        contacts = [{'recipient_id': contact_id} for contact_id in all_contacts]
+
+        return jsonify({'contacts': contacts}), 200
+    except Exception as e:
+        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
