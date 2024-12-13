@@ -354,3 +354,26 @@ def get_contacts():
 
     except Exception as e:
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
+
+@app_views.route('/get-user-id', methods=['POST'], strict_slashes=False)
+def get_user_id():
+    data = request.get_json()
+
+    # Validate the incoming request
+    if not data or 'email' not in data:
+        return jsonify({"error": "Invalid request. 'email' is required."}), 400
+
+    email = data['email'].strip()
+
+    try:
+        # Fetch all users and filter directly
+        all_users = storage.all(User).values()
+        user = next((u.to_dict() for u in all_users if u.email == email), None)
+
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        return jsonify({"userId": user['id']}), 200
+    except Exception as e:
+        # Handle unexpected errors gracefully
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
