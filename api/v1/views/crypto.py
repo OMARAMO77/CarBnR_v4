@@ -90,6 +90,33 @@ def decrypt_message(ciphertext, shared_key, iv):
         print("Plaintext is binary data, returning as base64.")
         return base64.b64encode(plaintext).decode('utf-8')
 
+def decrypt_message_data(messages, user_id):
+    """Decrypts a list of messages using the user's private key."""
+    decrypted = []
+    user_keys = get_existing_user_keys(user_id)
+    if not user_keys:
+        raise ValueError(f"Private key for user {user_id} not found")
+
+    user_private_key = serialization.load_pem_private_key(
+        user_keys.private_key,
+        password=None,
+        backend=default_backend()
+    )
+
+    for msg in messages:
+        try:
+            shared_key = decrypt_symmetric_key(msg.encrypted_key, user_private_key)
+            plaintext = decrypt_message(msg.ciphertext, shared_key, msg.iv)
+            decrypted.append({
+                'plaintext': plaintext,
+                'sender_id': msg.sender_id,
+                'created_at': msg.created_at.isoformat()
+            })
+        except Exception as e:
+            raise ValueError(f"Error decrypting message ID {msg.id}: {str(e)}")
+
+    return decrypted
+
 # API routes
 @app_views.route('/generate-keys/<user_id>', methods=['GET'])
 def generate_keys(user_id):
@@ -250,83 +277,80 @@ def store_message():
 
 @app_views.route('/get-message-data', methods=['GET'])
 def get_message_data():
-    recipient = request.args.get('recipient')
-    if not recipient:
-        return jsonify({'error': 'Recipient is required'}), 400
+    user1_id = request.args.get('user1')
+    user2_id = request.args.get('user2')
+
+    if not (user1_id and user2_id):
+        return jsonify({'error': 'Both user1 and user2 are required'}), 400
 
     try:
-        user = validate_user(recipient, "Recipient")
-        
-        # Fetch both received and sent messages
-        received_messages = user.messages_received or []
-        sent_messages = user.messages_sent or []
+        # Validate users
+        user1 = validate_user(user1_id, "User1")
+        user2 = validate_user(user2_id, "User2")
 
-        # Combine both lists
-        all_messages = received_messages + sent_messages
+        # Fetch messages
+        received_messages = [
+            msg for msg in user1.messages_received if msg.sender_id == user2_id
+        ]
+        sent_messages = [
+            msg for msg in user1.messages_sent if msg.recipient_id == user2_id
+        ]
+
+        # Decrypt received and sent messages
+        decrypted_received_messages = decrypt_message_data(received_messages, user1_id)
+        decrypted_sent_messages = decrypt_message_data(sent_messages, user2_id)
+
+        # Combine and sort messages
+        all_messages = decrypted_received_messages + decrypted_sent_messages
+        all_messages.sort(key=lambda msg: msg['created_at'])
+
         if not all_messages:
-            return jsonify({"messages": '', 'error': 'No message data found for recipient'}), 404
+            return jsonify({'messages': [], 'error': 'No message data found'}), 404
 
-        # Sort messages chronologically by timestamp
-        all_messages.sort(key=lambda msg: msg.created_at)
+        # Get pagination parameters from the query string
+        limit = request.args.get('limit', default=20, type=int)
+        offset = request.args.get('offset', default=0, type=int)
 
-        # Convert to dict format after sorting
-        message_list = [message.to_dict() for message in all_messages]
+        # Apply pagination
+        paginated_messages = all_messages[-limit - offset : -offset or None]  # Slice the list for pagination
 
-        return jsonify({"messages": message_list}), 200
-
-    except Exception as e:
-        return jsonify({'error': f'An error occurred: {str(e)}'}), 500
-
-@app_views.route('/receive-message', methods=['POST'])
-def receive_message():
-    data = request.json
-    recipient = data.get('recipient')
-    ciphertext = data.get('ciphertext')
-    iv = data.get('iv')
-    encrypted_key = data.get('encrypted_key')
-
-    # Validate required fields
-    if not all([recipient, ciphertext, iv, encrypted_key]):
-        return jsonify({'error': 'Missing required fields'}), 400
-
-    try:
-        # Fetch the recipient's private key from the database
-        recipient_keys = get_existing_user_keys(recipient)
-        if not recipient_keys:
-            return jsonify({'error': 'Recipient not found'}), 400
-
-        recipient_private_key = serialization.load_pem_private_key(
-            recipient_keys.private_key,  # The serialized private key (byte string)
-            password=None,
-            backend=default_backend()
-        )
-        shared_key = decrypt_symmetric_key(encrypted_key, recipient_private_key)
-        plaintext = decrypt_message(ciphertext, shared_key, iv)
-        return jsonify({'plaintext': plaintext}), 200
+        return jsonify({'messages': paginated_messages}), 200
 
     except ValueError as e:
         return jsonify({'error': str(e)}), 400
     except Exception as e:
-        return jsonify({'error': f'Unexpected error: {str(e)}'}), 500
+        return jsonify({'error': f'An unexpected error occurred: {str(e)}'}), 500
 
 @app_views.route('/get-contacts', methods=['GET'])
 def get_contacts():
     user_id = request.args.get('user_id')
-    try:
 
-        # Fetch all contacts for the current user
+    if not user_id:
+        return jsonify({'error': 'User ID is required'}), 400
+
+    try:
+        # Validate the user
         user = validate_user(user_id, "User")
         if not user:
             return jsonify({'error': 'User not found'}), 404
 
-        # Fetch related contacts (example: users they've messaged or received messages from)
+        # Fetch related contacts (users they've messaged or received messages from)
         sent_contacts = {msg.recipient_id for msg in user.messages_sent}
         received_contacts = {msg.sender_id for msg in user.messages_received}
         all_contacts = sent_contacts.union(received_contacts)
 
-        # Convert to a structured response
-        contacts = [{'recipient_id': contact_id} for contact_id in all_contacts]
-
+        # Structure the response with contact details
+        contacts = []
+        for contact_id in all_contacts:
+            contact_user = validate_user(contact_id, "User")
+            if contact_user:
+                contacts.append({
+                    'recipient_id': contact_user.id,
+                    'recipient_email': contact_user.email,
+                    'recipient_first_name': contact_user.first_name,
+                    'recipient_last_name': contact_user.last_name
+                })
         return jsonify({'contacts': contacts}), 200
+
     except Exception as e:
         return jsonify({'error': f'An error occurred: {str(e)}'}), 500
