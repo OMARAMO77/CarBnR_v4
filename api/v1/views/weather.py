@@ -2,6 +2,7 @@
 from api.v1.views import app_views
 from flask import abort, jsonify, make_response, request, Flask
 import requests
+from api.v1.views.extensions import limiter
 
 
 """
@@ -17,6 +18,7 @@ def my_api():
 """
 
 @app_views.route('/weather/<latitude>/<longitude>', methods=['GET'], strict_slashes=False)
+@limiter.limit("5 per minute")  # Specific rate limit
 def weather(latitude, longitude):
     """
     Get a 7-day weather forecast for a given location.

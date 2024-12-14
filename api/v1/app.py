@@ -2,14 +2,16 @@
 """ Flask Application """
 from models import storage
 from api.v1.views import app_views
+from api.v1.views.extensions import limiter
 from os import environ
 from flask import Flask, render_template, make_response, jsonify
 from flask_cors import CORS
 from flasgger import Swagger
 from flasgger.utils import swag_from
-from werkzeug.exceptions import HTTPException
+
 
 app = Flask(__name__)
+limiter.init_app(app)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 app.register_blueprint(app_views)
 cors = CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
@@ -30,19 +32,6 @@ def not_found(error):
         description: a resource was not found
     """
     return make_response(jsonify({'error': "Not found"}), 404)
-
-
-@app.errorhandler(HTTPException)
-def handle_http_exception(e):
-    response = e.get_response()
-    response.data = jsonify({'error': e.description}).data
-    response.content_type = 'application/json'
-    return response
-
-
-@app.errorhandler(Exception)
-def handle_exception(e):
-    return jsonify({'error': 'An unexpected error occurred'}), 500
 
 
 app.config['SWAGGER'] = {
