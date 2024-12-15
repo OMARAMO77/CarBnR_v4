@@ -126,15 +126,10 @@ def login():
     email = data['email']
     password = data['password']
 
-    all_users = storage.all(User).values()
-    users = []
-    for user in all_users:
-        users.append(user.to_dictt())
-
-    user = next((u for u in users if u.get('email') == email), None)
-
+    user = storage.get_user_by_email(User, email)
     hashed_password = md5(password.encode()).hexdigest()
-    if user and user.get('password') == hashed_password:
-        return jsonify({"userId": user['id']}), 200
+    user1 = user.to_dict()
+    if user and user.password == hashed_password:
+        return jsonify({"userId": user.id}), 200
     else:
         return jsonify({"error": "Invalid credentials"}), 401
