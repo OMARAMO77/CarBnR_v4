@@ -322,20 +322,9 @@
 </div>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script src="../static/scripts/stateAbbreviations.js"></script>
-
-  <script>
-    const cacheBuster = new Date().getTime();
-    const script1 = document.createElement("script");
-    const script2 = document.createElement("script");
-    const script0 = document.createElement("script");
-    script0.src = `../static/scripts/status-parameters.js?${cacheBuster}`;
-    script1.src = `../static/scripts/getBookingDetails.js?${cacheBuster}`;
-    script2.src = `../static/scripts/profile.js?${cacheBuster}`;
-    document.body.appendChild(script0);
-    document.body.appendChild(script1);
-    document.body.appendChild(script2);
-  </script>
-
+  <script src="../static/scripts/status-parameters.js"></script>
+  <script src="../static/scripts/getBookingDetails.js"></script>
+  <script src="../static/scripts/profile.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.5/dist/umd/popper.min.js"></script>
   <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
