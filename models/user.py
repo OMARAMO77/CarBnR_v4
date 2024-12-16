@@ -8,6 +8,7 @@ import sqlalchemy
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 from hashlib import md5
+from bcrypt import hashpw, gensalt
 
 
 class User(BaseModel, Base):
@@ -52,8 +53,16 @@ class User(BaseModel, Base):
         """initializes user"""
         super().__init__(*args, **kwargs)
 
+    @staticmethod
+    def hash_password(password):
+        """Hashes a password using bcrypt."""
+        encoded = password.encode('utf-8')
+        hashed = hashpw(encoded, gensalt())
+        return hashed.decode('utf-8')
+
     def __setattr__(self, name, value):
-        """sets a password with md5 encryption"""
+        """Encrypts the password before storing it."""
         if name == "password":
-            value = md5(value.encode()).hexdigest()
+            value = self.hash_password(value)
         super().__setattr__(name, value)
+
