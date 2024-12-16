@@ -3,6 +3,7 @@ alembic==1.14.0
 async-timeout==5.0.1
 attrs==19.3.0
 Automat==0.8.0
+bcrypt==4.2.1
 beautifulsoup4==4.8.2
 blinker==1.8.2
 certbot==0.40.0
@@ -84,6 +85,7 @@ pyrsistent==0.15.5
 pyserial==3.4
 python-apt==2.0.1+ubuntu0.20.4.1
 python-debian==0.1.36+ubuntu1.1
+python-dotenv==1.0.1
 pytz==2019.3
 PyYAML==5.3.1
 redis==5.2.1
