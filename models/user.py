@@ -7,7 +7,6 @@ from os import getenv
 import sqlalchemy
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
-from hashlib import md5
 from bcrypt import hashpw, gensalt
 
 
@@ -16,7 +15,7 @@ class User(BaseModel, Base):
     if models.storage_t == 'db':
         __tablename__ = 'users'
         email = Column(String(128), nullable=False, unique=True)
-        password = Column(String(128), nullable=False)
+        password = Column(String(60), nullable=False)
         first_name = Column(String(128), nullable=True)
         last_name = Column(String(128), nullable=True)
         region = Column(String(128), nullable=True)
