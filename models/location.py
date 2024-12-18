@@ -12,8 +12,8 @@ class Location(BaseModel, Base):
     """Representation of Location """
     if models.storage_t == 'db':
         __tablename__ = 'locations'
-        city_id = Column(String(60), ForeignKey('cities.id'), nullable=False)
-        user_id = Column(String(60), ForeignKey('users.id'), nullable=False)
+        city_id = Column(String(36), ForeignKey('cities.id'), nullable=False)
+        user_id = Column(String(36), ForeignKey('users.id'), nullable=False)
         name = Column(String(128), nullable=False)
         address = Column(String(128), nullable=False)
         phone_number = Column(String(60), nullable=False)
