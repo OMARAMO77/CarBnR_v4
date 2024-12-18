@@ -10,11 +10,7 @@ class User_keys(BaseModel, Base):
     """Representation of user cryptographic keys."""
     if models.storage_t == 'db':
         __tablename__ = 'user_keyss'
-        user_id = Column(String(60), ForeignKey('users.id'), nullable=False, unique=True)
-        # private_key = Column(Text, nullable=False)
-        # public_key = Column(Text, nullable=False)
-        #shared_key = Column(String(4096), nullable=True)
-        # shared_key = Column(BLOB, nullable=True)
+        user_id = Column(String(36), ForeignKey('users.id'), nullable=False, unique=True)
         private_key = Column(LargeBinary, nullable=False)  # Binary storage for the private key in PEM format
         public_key = Column(LargeBinary, nullable=False)   # Binary storage for the public key in PEM format
         shared_key = Column(LargeBinary, nullable=True)    # Optional binary storage for the shared symmetric key
