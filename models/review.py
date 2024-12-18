@@ -11,9 +11,9 @@ class Review(BaseModel, Base):
     """Representation of Review """
     if models.storage_t == 'db':
         __tablename__ = 'reviews'
-        car_id = Column(String(60), ForeignKey('cars.id'), nullable=False)
-        user_id = Column(String(60), ForeignKey('users.id'), nullable=False)
-        location_id = Column(String(60), ForeignKey('locations.id'),
+        car_id = Column(String(36), ForeignKey('cars.id'), nullable=False)
+        user_id = Column(String(36), ForeignKey('users.id'), nullable=False)
+        location_id = Column(String(36), ForeignKey('locations.id'),
                              nullable=True)
         text = Column(String(1024), nullable=False)
     else:
