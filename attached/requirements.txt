@@ -67,6 +67,7 @@ parsedatetime==2.4
 pbr==5.4.5
 pexpect==4.6.0
 pillow==10.4.0
+pip-autoremove==0.10.0
 pyasn1==0.4.2
 pyasn1-modules==0.2.1
 pycairo==1.26.1
