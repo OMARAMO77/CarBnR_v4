@@ -12,11 +12,11 @@ class Booking(BaseModel, Base):
     """Representation of Booking """
     if models.storage_t == 'db':
         __tablename__ = 'bookings'
-        car_id = Column(String(60), ForeignKey('cars.id', ondelete='SET NULL'),
+        car_id = Column(String(36), ForeignKey('cars.id', ondelete='SET NULL'),
                          nullable=True)
-        user_id = Column(String(60), ForeignKey('users.id', ondelete='SET NULL'),
+        user_id = Column(String(36), ForeignKey('users.id', ondelete='SET NULL'),
                          nullable=True)
-        location_id = Column(String(60), ForeignKey('locations.id'),
+        location_id = Column(String(36), ForeignKey('locations.id'),
                              nullable=False)
         price_by_day = Column(Integer, nullable=False, default=0)
         pickup_date = Column(DateTime, default=datetime.utcnow)
