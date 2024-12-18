@@ -12,7 +12,7 @@ class Car(BaseModel, Base):
     """Representation of Car """
     if models.storage_t == 'db':
         __tablename__ = 'cars'
-        location_id = Column(String(60), ForeignKey('locations.id'),
+        location_id = Column(String(36), ForeignKey('locations.id'),
                              nullable=False)
         brand = Column(String(128), nullable=False)
         model = Column(String(128), nullable=False)
