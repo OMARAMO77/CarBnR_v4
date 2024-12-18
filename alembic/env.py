@@ -1,25 +1,27 @@
-import os
 from dotenv import load_dotenv
+import os
 from logging.config import fileConfig
-from models.base_model import Base
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-load_dotenv()
+from dotenv import load_dotenv
+from pathlib import Path
+
+env_path = Path('/CarBnR_v4/.env')
+
+load_dotenv(dotenv_path=env_path)
+from models.base_model import Base
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-
-# Dynamically set the SQLAlchemy URL from environment variables
 user = os.getenv("CARBNR_MYSQL_USER")
 password = os.getenv("CARBNR_MYSQL_PWD")
 host = os.getenv("CARBNR_MYSQL_HOST")
 db_name = os.getenv("CARBNR_MYSQL_DB")
 sqlalchemy_url = f"mysql+pymysql://{user}:{password}@{host}/{db_name}"
 config.set_main_option("sqlalchemy.url", sqlalchemy_url)
-
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
