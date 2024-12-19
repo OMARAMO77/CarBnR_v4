@@ -7,9 +7,12 @@ from models.review import Review
 from models.state import State
 from models.user import User
 from models.booking import Booking
+from models.message import Message
+from models.user_keys import User_keys
 from models import storage
 from api.v1.views import app_views
 from flask import jsonify
+from flask_jwt_extended import jwt_required, verify_jwt_in_request
 
 
 @app_views.route('/status', methods=['GET'], strict_slashes=False)
@@ -19,11 +22,14 @@ def status():
 
 
 @app_views.route('/stats', methods=['GET'], strict_slashes=False)
+@jwt_required(locations=["cookies"])
 def number_objects():
     """ Retrieves the number of each objects by type """
-    classes = [Car, City, Location, Review, State, User, Booking]
+    verify_jwt_in_request(optional=False, locations=["cookies"])
+    classes = [Car, City, Location, Review, State, User, Booking,
+               Message, User_keys]
     names = ["cars", "cities", "locations", "reviews", "states", "users",
-             "bookings"]
+             "bookings", "messages", "user_keys"]
 
     num_objs = {}
     for i in range(len(classes)):
