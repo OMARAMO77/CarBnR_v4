@@ -28,14 +28,13 @@ echo "MySQL User: $CARBNR_MYSQL_USER"
 
 # Store current directory
 pwd_path=$(pwd)
-sleep 1
 
 # Start gunicorn processes in tmux sessions
 tmux new-session -d 'gunicorn --bind 0.0.0.0:5002 api.v1.app:app'
 tmux new-session -d 'gunicorn --bind 0.0.0.0:5000 carapp.select_cars:app'
 
 # Wait for processes to start
-sleep 1
+sleep 2
 
 # Check and report the status of the process on port 5000
 pids_5000=$(lsof -t -i :5000 | tr '\n' ' ')  # Capture all PIDs in one line
