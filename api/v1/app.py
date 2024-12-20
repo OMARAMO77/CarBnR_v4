@@ -2,7 +2,8 @@
 """ Flask Application """
 from models import storage
 from api.v1.views import app_views
-from os import environ
+from api.v1.views.extensions import limiter
+from os import getenv
 from flask import Flask, render_template, make_response, jsonify
 from flask_cors import CORS
 from flasgger import Swagger
@@ -14,6 +15,7 @@ env_path = Path('/CarBnR_v4/.env')
 load_dotenv(dotenv_path=env_path)
 
 app = Flask(__name__)
+limiter.init_app(app)
 app.config['JSONIFY_PRETTYPRINT_REGULAR'] = True
 app.register_blueprint(app_views)
 cors = CORS(app, resources={r"/api/v1/*": {"origins": "*"}})
@@ -59,8 +61,8 @@ Swagger(app)
 
 if __name__ == "__main__":
     """ Main Function """
-    host = environ.get('CARBNR_API_HOST')
-    port = environ.get('CARBNR_API_PORT')
+    host = getenv('CARBNR_API_HOST')
+    port = getenv('CARBNR_API_PORT')
     if not host:
         host = '0.0.0.0'
     if not port:
