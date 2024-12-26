@@ -547,7 +547,6 @@ async function openUpdateUserModal(userId) {
                 alert("Please fill at least one field to update.");
                 return;
             }
-
             const updateResponse = await fetch(`${HOST}/api/v1/users/${userId}`, {
                 method: 'PUT',
                 headers: {
@@ -555,6 +554,13 @@ async function openUpdateUserModal(userId) {
                 },
                 body: JSON.stringify(payload),
             });
+            console.error("updateResponse.status:", updateResponse.status);
+            // Handle unauthorized response
+            if (updateResponse.status === 401) {
+                alert("Unauthorized. Please log in again.");
+                throw new Error("Unauthorized");
+            }
+
             if (!updateResponse.ok) throw new Error('Failed to update user');
 
             // Close modal
@@ -567,6 +573,7 @@ async function openUpdateUserModal(userId) {
         alert("An error occurred while updating the user.");
     }
 }
+
 async function openUpdateLocationModal(locationId) {
     try {
         // Fetch location details and populate the form
