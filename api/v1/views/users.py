@@ -5,9 +5,7 @@ from models import storage
 from api.v1.views import app_views
 from flask import abort, jsonify, make_response, request, Flask
 from flasgger.utils import swag_from
-# from hashlib import md5
-from bcrypt import checkpw
-from datetime import datetime
+from hashlib import md5
 
 
 @app_views.route('/is-valid/<user_id>', methods=['GET'], strict_slashes=False)
@@ -101,28 +99,21 @@ def put_user(user_id):
     Updates a user
     """
     user = storage.get(User, user_id)
+
     if not user:
-        abort(404, description="User not found")
+        abort(404)
 
     if not request.get_json():
         abort(400, description="Not a JSON")
-    ignore = ['id', 'email', 'created_at', "updated_at"]
+
+    ignore = ['id', 'email', 'created_at', 'updated_at']
 
     data = request.get_json()
     for key, value in data.items():
-        if key not in ignore and hasattr(user, key):
+        if key not in ignore:
             setattr(user, key, value)
-    # user.updated_at = datetime.utcnow()
     storage.save()
     return make_response(jsonify(user.to_dict()), 200)
-
-
-def check_password(hashed_password, password):
-    valid = False
-    encoded = password.encode()
-    if checkpw(encoded, hashed_password.encode()):
-        valid = True
-    return valid
 
 
 @app_views.route('/login', methods=['POST'], strict_slashes=False)
@@ -135,9 +126,16 @@ def login():
     email = data['email']
     password = data['password']
 
-    user = storage.get_user_by_email(User, email)
-    if user and check_password(user.password, password):
-        return jsonify({"userId": user.id}), 200
+    all_users = storage.all(User).values()
+    users = []
+    for user in all_users:
+        users.append(user.to_dictt())
+
+    user = next((u for u in users if u.get('email') == email), None)
+
+    hashed_password = md5(password.encode()).hexdigest()
+    if user and user.get('password') == hashed_password:
+        return jsonify({"userId": user['id']}), 200
     else:
         return jsonify({"error": "Invalid credentials"}), 401
 
