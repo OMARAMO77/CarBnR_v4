@@ -22,7 +22,7 @@ To get started with CarBnR, follow these steps:
 5. Set up your Python virtual environment: `python -m venv venv`
 6. Activate the virtual environment: `source venv/bin/activate` (Linux)
 7. Install Python dependencies: `pip install -r requirements.txt`
-8. Start the Python application: `python3 carbnr/app.py`
+8. Start the Python application: `python3 carapp/app.py`
 
 ## Tech Stack
 
