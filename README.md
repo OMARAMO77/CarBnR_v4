@@ -6,7 +6,7 @@ Welcome to CarBnR, the ultimate web app for hassle-free car browsing and booking
 
 - **Deployed Site:** [CarBnR Web App](https://www.eromo.tech)
 - **Final Project Blog Article:** [CarBnR Blog](https://github.com/OMARAMO77/Blog-Post-Portfolio?tab=readme-ov-file#carbnr---car-booking-and-renting-web-app)
-- **Author(s) LinkedIn:**
+- **Author LinkedIn:**
   - [Omar ACHKIR](https://www.linkedin.com/in/OMARAMO77/)
 
 ![CarBnR Screenshot](https://github.com/OMARAMO77/CarBnR_v3/blob/master/web-app3.png)
