@@ -15,7 +15,7 @@ Welcome to CarBnR, the ultimate web app for hassle-free car browsing and booking
 
 To get started with CarBnR, follow these steps:
 
-1. Clone the repository: `git clone https://github.com/OMARAMO77/CarBnR.git`
+1. Clone the repository: `git clone https://github.com/OMARAMO77/CarBnR_v4.git`
 2. Navigate to the project directory: `cd CarBnR`
 3. Set up the MySQL database: `mysql -u username -p < schema.sql`
 4. Configure Nginx for CarBnR: Example configuration file in `/nginx-config/carbnr.conf`.
